@@ -8,18 +8,16 @@ public class MovieController(
     IMovieRepository movieRepository
 ) : BaseController
 {
-    private readonly IMovieRepository _movieRepository = movieRepository;
-
     [HttpGet]
-    public ActionResult<ListOfMovies> GetMovies() => Ok(_movieRepository.GetMovies());
+    public ActionResult<ListOfMovies> GetMovies() => Ok(movieRepository.GetMovies());
 
     [HttpGet("{id}")]
-    public ActionResult<MovieVm> GetMovie(int id) => Ok(_movieRepository.GetMovie(id));
+    public ActionResult<MovieVm> GetMovie(int id) => Ok(movieRepository.GetMovie(id));
 
     [HttpPost]
     public ActionResult<int> AddMovie(CreateMovieDto dto)
     {
-        var id = _movieRepository.AddMovie(dto);
+        var id = movieRepository.AddMovie(dto);
 
         return CreatedAtAction(nameof(GetMovie), new { id }, id);
     }
@@ -27,7 +25,7 @@ public class MovieController(
     [HttpPut("{id}/genres")]
     public ActionResult UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto)
     {
-        _movieRepository.UpdateGenresForMovie(id, dto);
+        movieRepository.UpdateGenresForMovie(id, dto);
 
         return NoContent();
     }
@@ -35,7 +33,7 @@ public class MovieController(
     [HttpPut("{id}")]
     public ActionResult UpdateMovie(int id, UpdateMovieDto dto)
     {
-        _movieRepository.UpdateMovie(id, dto);
+        movieRepository.UpdateMovie(id, dto);
 
         return NoContent();
     }
@@ -43,7 +41,7 @@ public class MovieController(
     [HttpDelete("{id}")]
     public ActionResult DeleteMovie(int id)
     {
-        _movieRepository.DeleteMovie(id);
+        movieRepository.DeleteMovie(id);
 
         return NoContent();
     }

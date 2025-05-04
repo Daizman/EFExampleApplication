@@ -68,13 +68,6 @@ public class MovieRepository(
         }
     }
 
-    public void DeleteMovie(int id)
-    {
-        var movie = GetMovieByIdAndThrowIfNotFound(id);
-        _movies.Remove(movie);
-        _genresInMovies.RemoveAll(g => g.MovieId == id);
-    }
-
     public void UpdateMovie(int id, UpdateMovieDto dto)
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
@@ -82,6 +75,13 @@ public class MovieRepository(
         movie.Title = dto.Title;
         movie.Description = dto.Description;
         movie.DurationInMinutes = dto.DurationInMinutes;
+    }
+
+    public void DeleteMovie(int id)
+    {
+        var movie = GetMovieByIdAndThrowIfNotFound(id);
+        _movies.Remove(movie);
+        _genresInMovies.RemoveAll(g => g.MovieId == id);
     }
 
     private Movie GetMovieByIdAndThrowIfNotFound(int id)

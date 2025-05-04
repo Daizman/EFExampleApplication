@@ -16,6 +16,12 @@ public class UserRepository(
 
     public ListOfUsers GetUsers() => _mapper.Map<ListOfUsers>(_users);
 
+    public UserVm GetUserById(int id)
+    {
+        var user = TryGetUserByIdAndThrowIfNotFound(id);
+        return _mapper.Map<UserVm>(user);
+    }
+
     public UserVm GetUserByLogin(string login)
     {
         var user = _users.FirstOrDefault(user => user.Login == login);
