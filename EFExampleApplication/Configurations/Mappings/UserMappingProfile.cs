@@ -13,8 +13,7 @@ public class UserMappingProfile : Profile
         CreateMap<User, UserListVm>();
 
         CreateMap<IEnumerable<User>, ListOfUsers>()
-            .ForCtorParam(nameof(ListOfUsers.Users),
-                source => source.MapFrom(userList => userList.ToList()));
+            .ForCtorParam(nameof(ListOfUsers.Users), source => source.MapFrom(userList => userList));
 
         CreateMap<CreateUserDto, User>()
             .ForMember(dest => dest.Id, opt => opt.Ignore());

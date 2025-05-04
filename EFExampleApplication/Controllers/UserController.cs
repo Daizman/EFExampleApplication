@@ -4,12 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EFExampleApplication.Controllers;
 
-public class UserController : BaseController
+public class UserController(
+    IUserRepository userRepository
+) : BaseController
 {
-    private readonly IUserRepository _userRepository;
-
-    public UserController(IUserRepository userRepository)
-        => _userRepository = userRepository;
+    private readonly IUserRepository _userRepository = userRepository;
 
     [HttpGet]
     public ActionResult<ListOfUsers> GetUsers()

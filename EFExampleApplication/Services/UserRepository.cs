@@ -6,16 +6,13 @@ using EFExampleApplication.Models;
 
 namespace EFExampleApplication.Services;
 
-public class UserRepository : IUserRepository
+public class UserRepository(
+    IMapper mapper
+) : IUserRepository
 {
     private readonly List<User> _users = new();
 
-    private readonly IMapper _mapper;
-
-    public UserRepository(IMapper mapper)
-    {
-        _mapper = mapper;
-    }
+    private readonly IMapper _mapper = mapper;
 
     public ListOfUsers GetUsers() => _mapper.Map<ListOfUsers>(_users);
 
@@ -32,7 +29,7 @@ public class UserRepository : IUserRepository
 
     public int AddUser(CreateUserDto dto)
     {
-        var userId = _users.Count;
+        var userId = _users.Count + 1;
         var user = _mapper.Map<User>(dto);
         user.Id = userId;
         _users.Add(user);
