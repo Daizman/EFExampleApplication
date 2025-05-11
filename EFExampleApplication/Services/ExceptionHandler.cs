@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Mime;
 using EFExampleApplication.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 

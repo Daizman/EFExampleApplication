@@ -11,5 +11,9 @@ public class UserEntityConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(user => user.Id);
         builder.Property(user => user.Login).HasMaxLength(128);
         builder.Property(user => user.Password).HasMaxLength(256);
+        builder.HasMany(user => user.Reviews)
+            .WithOne(review => review.User)
+            .HasForeignKey(review => review.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

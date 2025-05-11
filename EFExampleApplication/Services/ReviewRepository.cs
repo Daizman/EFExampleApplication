@@ -4,40 +4,52 @@ using EFExampleApplication.Contracts;
 using EFExampleApplication.Database;
 using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 
 public class ReviewRepository(
     IMapper mapper,
-    ApplicationDbContext dbContext,
-    IUserRepository userRepository,
-    IMovieRepository movieRepository
+    ApplicationDbContext dbContext
 ) : IReviewRepository
 {
     public ListOfReviews GetReviews(int movieId)
     {
-        var movie = movieRepository.GetMovie(movieId);
-        var movieReviews = dbContext.Reviews.Where(r => r.MovieId == movieId).ToList();
+        var movieReviews = dbContext
+            .Reviews
+            .Where(r => r.MovieId == movieId)
+            .Include(r => r.Movie)
+            .ToList();
 
-        return mapper.Map<ListOfReviews>((movie, movieReviews));
+        return mapper.Map<ListOfReviews>(movieReviews);
     }
 
     public ReviewVm GetReview(int movieId, int id)
     {
-        var review = GetReviewByIdAndThrowIfNotFound(id);
-        var movie = movieRepository.GetMovie(movieId);
-        var user = userRepository.GetUserById(review.UserId);
+        var result = dbContext
+            .Reviews
+            .Where(review => review.Id == id && review.MovieId == movieId)
+            .Select(review => new ReviewVm
+            (
+                review.Id,
+                review.Content,
+                review.Score,
+                review.Movie.Title,
+                review.User.Login
+            ))
+            .FirstOrDefault();
 
-        return mapper.Map<ReviewVm>((movie, user, review));
+        if (result is null)
+        {
+            throw new ReviewNotFoundException(id);
+        }
+
+        return result;
     }
 
     public int AddReview(CreateReviewDto reviewDto)
     {
-        var movie = movieRepository.GetMovie(reviewDto.MovieId);
-        var user = userRepository.GetUserById(reviewDto.UserId);
         var review = mapper.Map<Review>(reviewDto);
-        review.MovieId = movie.Id;
-        review.UserId = user.Id;
         dbContext.Add(review);
 
         dbContext.SaveChanges();

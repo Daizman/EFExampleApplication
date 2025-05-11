@@ -56,9 +56,6 @@ public class UserRepository(
     public void DeleteUser(int id)
     {
         var user = TryGetUserByIdAndThrowIfNotFound(id);
-        dbContext.RemoveRange(
-            dbContext.Reviews.Where(r => r.UserId == id)
-        );
         dbContext.Remove(user);
 
         dbContext.SaveChanges();

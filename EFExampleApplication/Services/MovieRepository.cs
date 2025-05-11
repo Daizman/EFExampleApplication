@@ -86,12 +86,6 @@ public class MovieRepository(
     public void DeleteMovie(int id)
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
-        dbContext.GenreInMovies.RemoveRange(
-          dbContext.GenreInMovies.Where(g => g.MovieId == id)
-        );
-        dbContext.Reviews.RemoveRange(
-          dbContext.Reviews.Where(r => r.MovieId == id)
-        );
         dbContext.Remove(movie);
 
         dbContext.SaveChanges();

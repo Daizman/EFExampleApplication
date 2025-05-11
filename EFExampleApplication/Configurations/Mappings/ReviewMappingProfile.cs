@@ -8,22 +8,20 @@ public class ReviewMappingProfile : Profile
 {
     public ReviewMappingProfile()
     {
-        CreateMap<(MovieVm Movie, UserVm User, Review Review), ReviewVm>()
-            .ForCtorParam(nameof(ReviewVm.Id), opt => opt.MapFrom(src => src.Review.Id))
-            .ForCtorParam(nameof(ReviewVm.Content), opt => opt.MapFrom(src => src.Review.Content))
-            .ForCtorParam(nameof(ReviewVm.Score), opt => opt.MapFrom(src => src.Review.Score))
+        CreateMap<Review, ReviewVm>()
+            .ForCtorParam(nameof(ReviewVm.Id), opt => opt.MapFrom(src => src.Id))
+            .ForCtorParam(nameof(ReviewVm.Content), opt => opt.MapFrom(src => src.Content))
+            .ForCtorParam(nameof(ReviewVm.Score), opt => opt.MapFrom(src => src.Score))
             .ForCtorParam(nameof(ReviewVm.MovieTitle), opt => opt.MapFrom(src => src.Movie.Title))
             .ForCtorParam(nameof(ReviewVm.ReviewerLogin), opt => opt.MapFrom(src => src.User.Login));
 
-        CreateMap<(MovieVm Movie, List<Review> Reviews), ListOfReviews>()
-            .ForCtorParam(
-                nameof(ListOfReviews.Reviews),
-                source => source
-                    .MapFrom(reviewList
-                        => reviewList
-                            .Reviews
-                            .Select(review => new ReviewListVm(review.Id, review.Score, reviewList.Movie.Title))
-                            .ToHashSet()));
+        CreateMap<Review, ReviewListVm>()
+            .ForCtorParam(nameof(ReviewListVm.Id), opt => opt.MapFrom(src => src.Id))
+            .ForCtorParam(nameof(ReviewListVm.Score), opt => opt.MapFrom(src => src.Score))
+            .ForCtorParam(nameof(ReviewListVm.MovieTitle), opt => opt.MapFrom(src => src.Movie.Title));
+
+        CreateMap<List<Review>, ListOfReviews>()
+            .ForCtorParam(nameof(ListOfReviews.Reviews), opt => opt.MapFrom(reviewList => reviewList));
 
         CreateMap<CreateReviewDto, Review>()
             .ForMember(dest => dest.Id, opt => opt.Ignore());

@@ -7,5 +7,7 @@ public class Review
     public int Score { get; set; }
 
     public int MovieId { get; set; }
+    public required virtual Movie Movie { get; set; }
     public int UserId { get; set; }
+    public required virtual User User { get; set; }
 }
