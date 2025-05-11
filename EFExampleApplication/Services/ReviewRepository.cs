@@ -17,7 +17,7 @@ public class ReviewRepository(
     public ListOfReviews GetReviews(int movieId)
     {
         var movie = movieRepository.GetMovie(movieId);
-        var movieReviews = _reviews.Where(r => r.MovieId == movieId);
+        var movieReviews = _reviews.Where(r => r.MovieId == movieId).ToList();
 
         return mapper.Map<ListOfReviews>((movie, movieReviews));
     }
