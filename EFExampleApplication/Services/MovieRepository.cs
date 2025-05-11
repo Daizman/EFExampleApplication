@@ -4,7 +4,6 @@ using EFExampleApplication.Contracts;
 using EFExampleApplication.Database;
 using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 
@@ -20,9 +19,10 @@ public class MovieRepository(
         var movie = GetMovieByIdAndThrowIfNotFound(id);
 
         var genres = dbContext.GenreInMovies
-            .Where(g => g.MovieId == id)
-            .Select(g => g.Genre)
-            .ToHashSet();
+          .Where(g => g.MovieId == id)
+          .Select(g => g.Genre)
+          .ToHashSet();
+
         var vm = mapper.Map<MovieVm>((movie, genres));
 
         return vm;
@@ -31,20 +31,29 @@ public class MovieRepository(
     public int AddMovie(CreateMovieDto movieDto)
     {
         var newMovie = mapper.Map<Movie>(movieDto);
+        dbContext.Add(newMovie);
 
-        ExecuteWithSave(() => dbContext.Add(newMovie));
+        dbContext.SaveChanges();
 
         return newMovie.Id;
     }
 
-
-    public void UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto) => ExecuteWithSave(() =>
+    public void UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto)
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
-        CheckIfGenresExistsAndThrowIfNotFound(dto.GenreIds);
+
+        var genreById = dbContext.Genres
+          .Where(g => dto.GenreIds.Contains(g.Id))
+          .ToDictionary(g => g.Id, g => g);
+
+        var firstNotFoundGenre = dto.GenreIds.FirstOrDefault(id => !genreById.ContainsKey(id));
+        if (firstNotFoundGenre != 0)
+        {
+            throw new GenreNotFoundException(firstNotFoundGenre);
+        }
 
         dbContext.RemoveRange(
-            dbContext.GenreInMovies.Where(g => g.MovieId == id)
+          dbContext.GenreInMovies.Where(g => g.MovieId == id)
         );
 
         var genresInMovie = new List<GenreInMovie>();
@@ -55,31 +64,35 @@ public class MovieRepository(
                 MovieId = movie.Id,
                 Movie = movie,
                 GenreId = genreId,
-                Genre = dbContext.Genres.First(g => g.Id == genreId),
+                Genre = genreById[genreId],
             };
             genresInMovie.Add(genreInMovie);
         }
-
         dbContext.AddRange(genresInMovie);
-    });
 
-    public void UpdateMovie(int id, UpdateMovieDto dto) => ExecuteWithSave(() =>
+        dbContext.SaveChanges();
+    }
+
+    public void UpdateMovie(int id, UpdateMovieDto dto)
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
-
         movie.Title = dto.Title;
         movie.Description = dto.Description;
         movie.DurationInMinutes = dto.DurationInMinutes;
-    });
 
-    public void DeleteMovie(int id) => ExecuteWithSave(() =>
+        dbContext.SaveChanges();
+    }
+
+    public void DeleteMovie(int id)
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
         dbContext.GenreInMovies.RemoveRange(
-            dbContext.GenreInMovies.Where(g => g.MovieId == id)
+          dbContext.GenreInMovies.Where(g => g.MovieId == id)
         );
         dbContext.Remove(movie);
-    });
+
+        dbContext.SaveChanges();
+    }
 
     private Movie GetMovieByIdAndThrowIfNotFound(int id)
     {
@@ -90,32 +103,5 @@ public class MovieRepository(
         }
 
         return movie;
-    }
-
-    private void CheckIfGenresExistsAndThrowIfNotFound(int[] ids)
-    {
-        var dbGenresForCheck = dbContext
-            .Genres
-            .Where(g => ids.Contains(g.Id))
-            .Select(g => g.Id)
-            .ToHashSet();
-        var firstNotFoundGenre = ids.FirstOrDefault(id => !dbGenresForCheck.Contains(id));
-        if (firstNotFoundGenre != 0)
-        {
-            throw new GenreNotFoundException(firstNotFoundGenre);
-        }
-    }
-
-    private void ExecuteWithSave(Action action)
-    {
-        try
-        {
-            action();
-            dbContext.SaveChanges();
-        }
-        catch (DbUpdateException ex)
-        {
-            throw new DbUpdateException("Database update error occurred", ex);
-        }
     }
 }

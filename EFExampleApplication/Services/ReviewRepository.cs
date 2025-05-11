@@ -4,7 +4,6 @@ using EFExampleApplication.Contracts;
 using EFExampleApplication.Database;
 using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 
@@ -39,26 +38,29 @@ public class ReviewRepository(
         var review = mapper.Map<Review>(reviewDto);
         review.MovieId = movie.Id;
         review.UserId = user.Id;
+        dbContext.Add(review);
 
-        ExecuteWithSave(() => dbContext.Add(review));
+        dbContext.SaveChanges();
 
         return review.Id;
     }
 
-    public void UpdateReview(int id, UpdateReviewDto dto) => ExecuteWithSave(() =>
+    public void UpdateReview(int id, UpdateReviewDto dto)
     {
         var review = GetReviewByIdAndThrowIfNotFound(id);
-
         review.Content = dto.Content;
         review.Score = dto.Score;
-    });
 
-    public void DeleteReview(int id) => ExecuteWithSave(() =>
+        dbContext.SaveChanges();
+    }
+
+    public void DeleteReview(int id)
     {
         var review = GetReviewByIdAndThrowIfNotFound(id);
-
         dbContext.Remove(review);
-    });
+
+        dbContext.SaveChanges();
+    }
 
     private Review GetReviewByIdAndThrowIfNotFound(int id)
     {
@@ -69,18 +71,5 @@ public class ReviewRepository(
         }
 
         return review;
-    }
-
-    private void ExecuteWithSave(Action action)
-    {
-        try
-        {
-            action.Invoke();
-            dbContext.SaveChanges();
-        }
-        catch (DbUpdateException ex)
-        {
-            throw new DbUpdateException("Database update error occurred", ex);
-        }
     }
 }
