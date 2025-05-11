@@ -1,33 +1,25 @@
 using AutoMapper;
 using EFExampleApplication.Abstractions;
 using EFExampleApplication.Contracts;
+using EFExampleApplication.Database;
 using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 
 public class MovieRepository(
-    IMapper mapper
+    IMapper mapper,
+    ApplicationDbContext dbContext
 ) : IMovieRepository
 {
-    private readonly IReadOnlySet<Genre> _genres = new HashSet<Genre>
-    {
-        new() { Id = 1, Name = "Action" },
-        new() { Id = 2, Name = "Comedy" },
-        new() { Id = 3, Name = "Drama" },
-        new() { Id = 4, Name = "Horror" },
-        new() { Id = 5, Name = "Sci-Fi" }
-    };
-    private readonly List<GenreInMovie> _genresInMovies = new();
-    private readonly List<Movie> _movies = new();
-
-    public ListOfMovies GetMovies() => mapper.Map<ListOfMovies>(_movies);
+    public ListOfMovies GetMovies() => mapper.Map<ListOfMovies>(dbContext.Movies.ToList());
 
     public MovieVm GetMovie(int id)
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
 
-        var genres = _genresInMovies
+        var genres = dbContext.GenreInMovies
             .Where(g => g.MovieId == id)
             .Select(g => g.Genre)
             .ToHashSet();
@@ -39,19 +31,23 @@ public class MovieRepository(
     public int AddMovie(CreateMovieDto movieDto)
     {
         var newMovie = mapper.Map<Movie>(movieDto);
-        newMovie.Id = _movies.Count + 1;
-        _movies.Add(newMovie);
+
+        ExecuteWithSave(() => dbContext.Add(newMovie));
 
         return newMovie.Id;
     }
 
 
-    public void UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto)
+    public void UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto) => ExecuteWithSave(() =>
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
-        _ = dto.GenreIds.All(CheckIfGenreExistsAndThrowIfNotFound);
+        CheckIfGenresExistsAndThrowIfNotFound(dto.GenreIds);
 
-        _genresInMovies.RemoveAll(g => g.MovieId == id);
+        dbContext.RemoveRange(
+            dbContext.GenreInMovies.Where(g => g.MovieId == id)
+        );
+
+        var genresInMovie = new List<GenreInMovie>();
         foreach (var genreId in dto.GenreIds)
         {
             var genreInMovie = new GenreInMovie
@@ -59,34 +55,35 @@ public class MovieRepository(
                 MovieId = movie.Id,
                 Movie = movie,
                 GenreId = genreId,
-                Genre = _genres.First(g => g.Id == genreId),
+                Genre = dbContext.Genres.First(g => g.Id == genreId),
             };
-            if (!_genresInMovies.Contains(genreInMovie))
-            {
-                _genresInMovies.Add(genreInMovie);
-            }
+            genresInMovie.Add(genreInMovie);
         }
-    }
 
-    public void UpdateMovie(int id, UpdateMovieDto dto)
+        dbContext.AddRange(genresInMovie);
+    });
+
+    public void UpdateMovie(int id, UpdateMovieDto dto) => ExecuteWithSave(() =>
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
 
         movie.Title = dto.Title;
         movie.Description = dto.Description;
         movie.DurationInMinutes = dto.DurationInMinutes;
-    }
+    });
 
-    public void DeleteMovie(int id)
+    public void DeleteMovie(int id) => ExecuteWithSave(() =>
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
-        _movies.Remove(movie);
-        _genresInMovies.RemoveAll(g => g.MovieId == id);
-    }
+        dbContext.GenreInMovies.RemoveRange(
+            dbContext.GenreInMovies.Where(g => g.MovieId == id)
+        );
+        dbContext.Remove(movie);
+    });
 
     private Movie GetMovieByIdAndThrowIfNotFound(int id)
     {
-        var movie = _movies.FirstOrDefault(m => m.Id == id);
+        var movie = dbContext.Movies.FirstOrDefault(m => m.Id == id);
         if (movie is null)
         {
             throw new MovieNotFoundException(id);
@@ -95,14 +92,30 @@ public class MovieRepository(
         return movie;
     }
 
-    private bool CheckIfGenreExistsAndThrowIfNotFound(int id)
+    private void CheckIfGenresExistsAndThrowIfNotFound(int[] ids)
     {
-        var genre = _genres.FirstOrDefault(g => g.Id == id);
-        if (genre is null)
+        var dbGenresForCheck = dbContext
+            .Genres
+            .Where(g => ids.Contains(g.Id))
+            .Select(g => g.Id)
+            .ToHashSet();
+        var firstNotFoundGenre = ids.FirstOrDefault(id => !dbGenresForCheck.Contains(id));
+        if (firstNotFoundGenre != 0)
         {
-            throw new GenreNotFoundException(id);
+            throw new GenreNotFoundException(firstNotFoundGenre);
         }
+    }
 
-        return true;
+    private void ExecuteWithSave(Action action)
+    {
+        try
+        {
+            action();
+            dbContext.SaveChanges();
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new DbUpdateException("Database update error occurred", ex);
+        }
     }
 }

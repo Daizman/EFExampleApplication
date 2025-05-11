@@ -15,7 +15,7 @@ public class ReviewMappingProfile : Profile
             .ForCtorParam(nameof(ReviewVm.MovieTitle), opt => opt.MapFrom(src => src.Movie.Title))
             .ForCtorParam(nameof(ReviewVm.ReviewerLogin), opt => opt.MapFrom(src => src.User.Login));
 
-        CreateMap<(MovieVm Movie, IEnumerable<Review> Reviews), ListOfReviews>()
+        CreateMap<(MovieVm Movie, List<Review> Reviews), ListOfReviews>()
             .ForCtorParam(
                 nameof(ListOfReviews.Reviews),
                 source => source
