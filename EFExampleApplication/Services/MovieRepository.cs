@@ -30,7 +30,15 @@ public class MovieRepository(
 
     public int AddMovie(CreateMovieDto movieDto)
     {
+        var genreById = GetGenresDictionary(movieDto.Genres);
         var newMovie = mapper.Map<Movie>(movieDto);
+        foreach (var genreInMovie in newMovie.Genres)
+        {
+            if (genreById.ContainsKey(genreInMovie.GenreId))
+            {
+                genreInMovie.Genre = genreById[genreInMovie.GenreId];
+            }
+        }
         dbContext.Add(newMovie);
 
         dbContext.SaveChanges();
@@ -41,30 +49,27 @@ public class MovieRepository(
     public void UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto)
     {
         var movie = GetMovieByIdAndThrowIfNotFound(id);
-
-        var genreById = dbContext.Genres
-          .Where(g => dto.GenreIds.Contains(g.Id))
-          .ToDictionary(g => g.Id, g => g);
-
-        var firstNotFoundGenre = dto.GenreIds.FirstOrDefault(id => !genreById.ContainsKey(id));
-        if (firstNotFoundGenre != 0)
-        {
-            throw new GenreNotFoundException(firstNotFoundGenre);
-        }
+        var genreById = GetGenresDictionary(dto.Genres);
 
         dbContext.RemoveRange(
           dbContext.GenreInMovies.Where(g => g.MovieId == id)
         );
 
         var genresInMovie = new List<GenreInMovie>();
-        foreach (var genreId in dto.GenreIds)
+        foreach (var genre in dto.Genres)
         {
             var genreInMovie = new GenreInMovie
             {
                 MovieId = movie.Id,
                 Movie = movie,
-                GenreId = genreId,
-                Genre = genreById[genreId],
+                Genre =
+                    genre.Id.HasValue && genreById.ContainsKey(genre.Id.Value)
+                        ? genreById[genre.Id.Value]
+                        : new Genre
+                        {
+                            Id = genre.Id ?? default,
+                            Name = genre.Name!
+                        },
             };
             genresInMovie.Add(genreInMovie);
         }
@@ -100,5 +105,15 @@ public class MovieRepository(
         }
 
         return movie;
+    }
+
+    private Dictionary<int, Genre> GetGenresDictionary(MovieGenreDto[] genres)
+    {
+        var genreIds = genres.Where(g => g.Id.HasValue).Select(g => g.Id!.Value);
+        var genreById = dbContext.Genres
+          .Where(g => genreIds.Contains(g.Id))
+          .ToDictionary(g => g.Id, g => g);
+
+        return genreById;
     }
 }

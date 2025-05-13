@@ -21,6 +21,15 @@ public class MovieMappingProfile : Profile
             .ForCtorParam(nameof(ListOfMovies.Movies), source => source.MapFrom(movieList => movieList));
 
         CreateMap<CreateMovieDto, Movie>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore());
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Genres, opt => opt.MapFrom(dto => dto.Genres));
+        CreateMap<CreateMovieDto, GenreInMovie>()
+            .ForMember(dest => dest.MovieId, opt => opt.Ignore())
+            .ForMember(dest => dest.Movie, opt => opt.MapFrom(dto => dto));
+        CreateMap<MovieGenreDto, Genre>()
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(dto => dto.Id ?? default));
+        CreateMap<MovieGenreDto, GenreInMovie>()
+            .ForMember(dest => dest.GenreId, opt => opt.MapFrom(dto => dto.Id ?? default))
+            .ForMember(dest => dest.Genre, opt => opt.MapFrom(dto => dto));
     }
 }
