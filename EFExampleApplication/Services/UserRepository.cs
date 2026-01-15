@@ -1,31 +1,32 @@
 using EFExampleApplication.Abstractions;
 using EFExampleApplication.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 
-public class UserRepository: IUserRepository
+public class UserRepository(IApplicationDbContext applicationDbContext): IUserRepository
 {
-    private readonly List<User> _users = new();
+    private readonly DbSet<User> _users = applicationDbContext.Users;
 
-    public IReadOnlyList<User> GetUsers() => _users;
+    public IReadOnlyList<User> GetUsers() => _users.AsNoTracking().ToList();
 
     public User? GetUserById(int userId)
     {
-        return _users.FirstOrDefault(user => user.Id == userId);
+        return _users.AsNoTracking().FirstOrDefault(user => user.Id == userId);
     }
 
     public User? GetUserByLogin(string login)
     {
-        return _users.FirstOrDefault(user => user.Login == login);
+        return _users.AsNoTracking().FirstOrDefault(user => user.Login == login);
     }
 
     public int AddUser(User newUser)
     {
-        var userId = _users.Count + 1;
-        newUser.Id = userId;
         _users.Add(newUser);
 
-        return userId;
+        applicationDbContext.SaveChanges();
+
+        return newUser.Id;
     }
 
     public bool UpdateUser(int userId, string login)
@@ -38,6 +39,9 @@ public class UserRepository: IUserRepository
         }
 
         user.Login = login;
+
+        applicationDbContext.SaveChanges();
+
         return true;
     }
 
@@ -49,8 +53,11 @@ public class UserRepository: IUserRepository
         {
             return false;
         }
-
+        
         _users.Remove(user);
+
+        applicationDbContext.SaveChanges();
+
         return true;
     }
 }

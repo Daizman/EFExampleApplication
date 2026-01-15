@@ -8,21 +8,20 @@ public class ReviewMappingProfile : Profile
 {
     public ReviewMappingProfile()
     {
-        CreateMap<(Movie Movie, User User, Review Review), ReviewVm>()
-            .ForCtorParam(nameof(ReviewVm.Id), opt => opt.MapFrom(src => src.Review.Id))
-            .ForCtorParam(nameof(ReviewVm.Content), opt => opt.MapFrom(src => src.Review.Content))
-            .ForCtorParam(nameof(ReviewVm.Score), opt => opt.MapFrom(src => src.Review.Score))
+        CreateMap<Review, ReviewVm>()
+            .ForCtorParam(nameof(ReviewVm.Id), opt => opt.MapFrom(src => src.Id))
+            .ForCtorParam(nameof(ReviewVm.Content), opt => opt.MapFrom(src => src.Content))
+            .ForCtorParam(nameof(ReviewVm.Score), opt => opt.MapFrom(src => src.Score))
             .ForCtorParam(nameof(ReviewVm.MovieTitle), opt => opt.MapFrom(src => src.Movie.Title))
             .ForCtorParam(nameof(ReviewVm.ReviewerLogin), opt => opt.MapFrom(src => src.User.Login));
 
-        CreateMap<(Movie Movie, IReadOnlyList<Review> Reviews), ListOfReviews>()
+        CreateMap<IEnumerable<Review>, ListOfReviews>()
             .ForCtorParam(
                 nameof(ListOfReviews.Reviews),
                 source => source
                     .MapFrom(reviewList
                         => reviewList
-                            .Reviews
-                            .Select(review => new ReviewListVm(review.Id, review.Score, reviewList.Movie.Title))
+                            .Select(review => new ReviewListVm(review.Id, review.Score, review.Movie.Title))
                             .ToHashSet()));
 
         CreateMap<CreateReviewDto, Review>()

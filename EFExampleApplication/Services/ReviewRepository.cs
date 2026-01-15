@@ -1,34 +1,43 @@
 using EFExampleApplication.Abstractions;
-using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 
-public class ReviewRepository : IReviewRepository
+public class ReviewRepository(IApplicationDbContext applicationDbContext) : IReviewRepository
 {
-    private readonly List<Review> _reviews = new();
+    private readonly DbSet<Review> _reviews = applicationDbContext.Reviews;
 
     public IReadOnlyList<Review> GetReviews(int movieId)
     {
-        return _reviews.Where(r => r.MovieId == movieId).ToList();
+        return _reviews.Where(r => r.MovieId == movieId).AsNoTracking().ToList();
     }
 
+    // Тут возникает проблема с тем, что мы в каких-то методах репозитория,
+    // хотим отдавать модель целиком, с User и Movie, а в каких-то нет.
+    // В итоге:
+    // - Нам снаружи везде нужно проверять, есть User и Movie у полученного объекта или нет.
+    //   Т.е. абстракция не работает, нам нужно знать, был ли Include в реализации или нет.
+    // - Мы на каждый запрос, где есть Include достаем все колонки из БД, даже если нам нужна только одна сущность.
     public Review? GetReview(int movieId, int reviewId)
     {
-        return _reviews.FirstOrDefault(r => r.Id == reviewId && r.MovieId == movieId);
+        return _reviews
+            .AsNoTracking()
+            .FirstOrDefault(r => r.Id == reviewId && r.MovieId == movieId);
     }
 
     public int AddReview(Review newReview)
     {
-        newReview.Id = _reviews.Count + 1;
         _reviews.Add(newReview);
+
+        applicationDbContext.SaveChanges();
 
         return newReview.Id;
     }
 
     public bool UpdateReview(int reviewId, string? content, int? score)
     {
-        var review = GetReviewByIdAndThrowIfNotFound(reviewId);
+        var review = _reviews.FirstOrDefault(r => r.Id == reviewId);
 
         if (review is null)
         {
@@ -37,6 +46,8 @@ public class ReviewRepository : IReviewRepository
 
         review.Content = content ?? review.Content;
         review.Score = score ?? review.Score;
+
+        applicationDbContext.SaveChanges();
 
         return true;
     }
@@ -50,17 +61,9 @@ public class ReviewRepository : IReviewRepository
         }
 
         _reviews.Remove(review);
+
+        applicationDbContext.SaveChanges();
+
         return true;
-    }
-
-    private Review GetReviewByIdAndThrowIfNotFound(int id)
-    {
-        var review = _reviews.FirstOrDefault(r => r.Id == id);
-        if (review is null)
-        {
-            throw new ReviewNotFoundException(id);
-        }
-
-        return review;
     }
 }

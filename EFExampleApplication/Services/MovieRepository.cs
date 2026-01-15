@@ -1,44 +1,37 @@
 using EFExampleApplication.Abstractions;
 using EFExampleApplication.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 
-public class MovieRepository : IMovieRepository
+public class MovieRepository(IApplicationDbContext applicationDbContext) : IMovieRepository
 {
-    private readonly IReadOnlySet<Genre> _genres = new HashSet<Genre>
-    {
-        new() { Id = 1, Name = "Action" },
-        new() { Id = 2, Name = "Comedy" },
-        new() { Id = 3, Name = "Drama" },
-        new() { Id = 4, Name = "Horror" },
-        new() { Id = 5, Name = "Sci-Fi" },
-    };
-    private readonly List<GenreInMovie> _genresInMovies = new();
-    private readonly List<Movie> _movies = new();
+    private readonly DbSet<Genre> _genres = applicationDbContext.Genres;
+    private readonly DbSet<GenreInMovie> _genresInMovies = applicationDbContext.GenreInMovies;
+    private readonly DbSet<Movie> _movies = applicationDbContext.Movies;
 
-    public IReadOnlyList<Movie> GetMovies() => _movies;
+    public IReadOnlyList<Movie> GetMovies() => _movies.AsNoTracking().ToList();
 
     public Movie? GetMovie(int movieId)
     {
-        var movie = _movies.FirstOrDefault(g => g.Id == movieId);
+        var movie = _movies.AsNoTracking()
+            .Include(m => m.Genres)
+            .ThenInclude(gInM => gInM.Genre)
+            .FirstOrDefault(g => g.Id == movieId);
 
         if (movie is null)
         {
             return null;
         }
 
-        var genres = _genresInMovies
-            .Where(g => g.MovieId == movieId)
-            .ToList();
-        movie.Genres = genres;
-
         return movie;
     }
 
     public int AddMovie(Movie movie)
     {
-        movie.Id = _movies.Count + 1;
         _movies.Add(movie);
+
+        applicationDbContext.SaveChanges();
 
         return movie.Id;
     }
@@ -52,14 +45,15 @@ public class MovieRepository : IMovieRepository
             return false;
         }
 
-        var allGenresExists = newGenreIds.All(CheckIfGenreExists);
+        var existingGenres = _genres.Where(g => newGenreIds.Contains(g.Id)).ToList();
 
-        if (!allGenresExists)
+        if (existingGenres.Count != newGenreIds.Length)
         {
             return false;
         }
 
-        _genresInMovies.RemoveAll(g => g.MovieId == movieId);
+        var oldMovieGenres = _genresInMovies.Where(g => g.MovieId == movieId).ToList();
+        _genresInMovies.RemoveRange(oldMovieGenres);
         foreach (var genreId in newGenreIds)
         {
             var genreInMovie = new GenreInMovie
@@ -69,11 +63,10 @@ public class MovieRepository : IMovieRepository
                 GenreId = genreId,
                 Genre = _genres.First(g => g.Id == genreId),
             };
-            if (!_genresInMovies.Contains(genreInMovie))
-            {
-                _genresInMovies.Add(genreInMovie);
-            }
+           _genresInMovies.Add(genreInMovie);
         }
+
+        applicationDbContext.SaveChanges();
 
         return true;
     }
@@ -95,6 +88,8 @@ public class MovieRepository : IMovieRepository
         oldVersion.Title = title ?? oldVersion.Title;
         oldVersion.Description = description ?? oldVersion.Description;
         oldVersion.DurationInMinutes = durationInMinutes ?? oldVersion.DurationInMinutes;
+        
+        applicationDbContext.SaveChanges();
 
         return true;
     }
@@ -109,18 +104,8 @@ public class MovieRepository : IMovieRepository
         }
 
         _movies.Remove(movie);
-        _genresInMovies.RemoveAll(g => g.MovieId == movieId);
 
-        return true;
-    }
-
-    private bool CheckIfGenreExists(int genreId)
-    {
-        var genre = _genres.FirstOrDefault(g => g.Id == genreId);
-        if (genre is null)
-        {
-            return false;
-        }
+        applicationDbContext.SaveChanges();
 
         return true;
     }
