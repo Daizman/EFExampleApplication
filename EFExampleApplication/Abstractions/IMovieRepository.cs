@@ -1,13 +1,19 @@
 using EFExampleApplication.Contracts;
+using EFExampleApplication.Models;
 
 namespace EFExampleApplication.Abstractions;
 
 public interface IMovieRepository
 {
-    ListOfMovies GetMovies();
-    MovieVm GetMovie(int id);
-    int AddMovie(CreateMovieDto movieDto);
-    void UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto);
-    void UpdateMovie(int id, UpdateMovieDto dto);
-    void DeleteMovie(int id);
+    IReadOnlyList<Movie> GetMovies();
+    Movie? GetMovie(int movieId);
+    int AddMovie(Movie movie);
+    bool UpdateGenresForMovie(int movieId, int[] newGenreIds);
+    bool UpdateMovie(
+        int movieId,
+        string? title,
+        string? description,
+        int? durationInMinutes
+    );
+    bool DeleteMovie(int movieId);
 }

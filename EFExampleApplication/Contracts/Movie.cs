@@ -10,4 +10,4 @@ public record CreateMovieDto(string Title, string? Description, int DurationInMi
 
 public record UpdateGenresForMovieDto(int[] GenreIds);
 
-public record UpdateMovieDto(string Title, string? Description, int DurationInMinutes);
+public record UpdateMovieDto(string? Title, string? Description, int? DurationInMinutes);

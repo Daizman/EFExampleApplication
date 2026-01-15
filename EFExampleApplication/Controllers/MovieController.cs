@@ -5,19 +5,19 @@ using Microsoft.AspNetCore.Mvc;
 namespace EFExampleApplication.Controllers;
 
 public class MovieController(
-    IMovieRepository movieRepository
+    IMovieService movieService
 ) : BaseController
 {
     [HttpGet]
-    public ActionResult<ListOfMovies> GetMovies() => Ok(movieRepository.GetMovies());
+    public ActionResult<ListOfMovies> GetMovies() => Ok(movieService.GetMovies());
 
     [HttpGet("{id}")]
-    public ActionResult<MovieVm> GetMovie(int id) => Ok(movieRepository.GetMovie(id));
+    public ActionResult<MovieVm> GetMovie(int id) => Ok(movieService.GetMovie(id));
 
     [HttpPost]
     public ActionResult<int> AddMovie(CreateMovieDto dto)
     {
-        var id = movieRepository.AddMovie(dto);
+        var id = movieService.AddMovie(dto);
 
         return CreatedAtAction(nameof(GetMovie), new { id }, id);
     }
@@ -25,7 +25,7 @@ public class MovieController(
     [HttpPut("{id}/genres")]
     public ActionResult UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto)
     {
-        movieRepository.UpdateGenresForMovie(id, dto);
+        movieService.UpdateGenresForMovie(id, dto);
 
         return NoContent();
     }
@@ -33,7 +33,7 @@ public class MovieController(
     [HttpPut("{id}")]
     public ActionResult UpdateMovie(int id, UpdateMovieDto dto)
     {
-        movieRepository.UpdateMovie(id, dto);
+        movieService.UpdateMovie(id, dto);
 
         return NoContent();
     }
@@ -41,7 +41,7 @@ public class MovieController(
     [HttpDelete("{id}")]
     public ActionResult DeleteMovie(int id)
     {
-        movieRepository.DeleteMovie(id);
+        movieService.DeleteMovie(id);
 
         return NoContent();
     }

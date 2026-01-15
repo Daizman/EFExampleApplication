@@ -1,70 +1,56 @@
-using AutoMapper;
 using EFExampleApplication.Abstractions;
-using EFExampleApplication.Contracts;
-using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
 
 namespace EFExampleApplication.Services;
 
-public class UserRepository(
-    IMapper mapper
-) : IUserRepository
+public class UserRepository: IUserRepository
 {
     private readonly List<User> _users = new();
 
-    private readonly IMapper _mapper = mapper;
+    public IReadOnlyList<User> GetUsers() => _users;
 
-    public ListOfUsers GetUsers() => _mapper.Map<ListOfUsers>(_users);
-
-    public UserVm GetUserById(int id)
+    public User? GetUserById(int userId)
     {
-        var user = TryGetUserByIdAndThrowIfNotFound(id);
-        return _mapper.Map<UserVm>(user);
+        return _users.FirstOrDefault(user => user.Id == userId);
     }
 
-    public UserVm GetUserByLogin(string login)
+    public User? GetUserByLogin(string login)
     {
-        var user = _users.FirstOrDefault(user => user.Login == login);
-        if (user is null)
-        {
-            throw new UserNotFoundException(login);
-        }
-
-        return _mapper.Map<UserVm>(user);
+        return _users.FirstOrDefault(user => user.Login == login);
     }
 
-    public int AddUser(CreateUserDto dto)
+    public int AddUser(User newUser)
     {
         var userId = _users.Count + 1;
-        var user = _mapper.Map<User>(dto);
-        user.Id = userId;
-        _users.Add(user);
+        newUser.Id = userId;
+        _users.Add(newUser);
 
         return userId;
     }
 
-    public void UpdateUser(int id, UpdateUserDto dto)
+    public bool UpdateUser(int userId, string login)
     {
-        var user = TryGetUserByIdAndThrowIfNotFound(id);
+        var user = _users.FirstOrDefault(user => user.Id == userId);
 
-        user.Login = dto.Login;
-    }
-
-    public void DeleteUser(int id)
-    {
-        var user = TryGetUserByIdAndThrowIfNotFound(id);
-
-        _users.Remove(user);
-    }
-
-    private User TryGetUserByIdAndThrowIfNotFound(int id)
-    {
-        var user = _users.FirstOrDefault(user => user.Id == id);
         if (user is null)
         {
-            throw new UserNotFoundException(id);
+            return false;
         }
 
-        return user;
+        user.Login = login;
+        return true;
+    }
+
+    public bool DeleteUser(int userId)
+    {
+        var user = _users.FirstOrDefault(user => user.Id == userId);
+
+        if (user is null)
+        {
+            return false;
+        }
+
+        _users.Remove(user);
+        return true;
     }
 }

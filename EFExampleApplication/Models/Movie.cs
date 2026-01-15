@@ -7,4 +7,5 @@ public class Movie
     public required string Title { get; set; }
     public string? Description { get; set; }
     public int DurationInMinutes { get; set; }
+    public List<GenreInMovie> Genres { get; set; } = [];
 }

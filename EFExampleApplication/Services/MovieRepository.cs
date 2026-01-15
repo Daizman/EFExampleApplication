@@ -1,14 +1,9 @@
-using AutoMapper;
 using EFExampleApplication.Abstractions;
-using EFExampleApplication.Contracts;
-using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
 
 namespace EFExampleApplication.Services;
 
-public class MovieRepository(
-    IMapper mapper
-) : IMovieRepository
+public class MovieRepository : IMovieRepository
 {
     private readonly IReadOnlySet<Genre> _genres = new HashSet<Genre>
     {
@@ -16,43 +11,56 @@ public class MovieRepository(
         new() { Id = 2, Name = "Comedy" },
         new() { Id = 3, Name = "Drama" },
         new() { Id = 4, Name = "Horror" },
-        new() { Id = 5, Name = "Sci-Fi" }
+        new() { Id = 5, Name = "Sci-Fi" },
     };
     private readonly List<GenreInMovie> _genresInMovies = new();
     private readonly List<Movie> _movies = new();
 
-    public ListOfMovies GetMovies() => mapper.Map<ListOfMovies>(_movies);
+    public IReadOnlyList<Movie> GetMovies() => _movies;
 
-    public MovieVm GetMovie(int id)
+    public Movie? GetMovie(int movieId)
     {
-        var movie = GetMovieByIdAndThrowIfNotFound(id);
+        var movie = _movies.FirstOrDefault(g => g.Id == movieId);
+
+        if (movie is null)
+        {
+            return null;
+        }
 
         var genres = _genresInMovies
-            .Where(g => g.MovieId == id)
-            .Select(g => g.Genre)
-            .ToHashSet();
-        var vm = mapper.Map<MovieVm>((movie, genres));
+            .Where(g => g.MovieId == movieId)
+            .ToList();
+        movie.Genres = genres;
 
-        return vm;
+        return movie;
     }
 
-    public int AddMovie(CreateMovieDto movieDto)
+    public int AddMovie(Movie movie)
     {
-        var newMovie = mapper.Map<Movie>(movieDto);
-        newMovie.Id = _movies.Count + 1;
-        _movies.Add(newMovie);
+        movie.Id = _movies.Count + 1;
+        _movies.Add(movie);
 
-        return newMovie.Id;
+        return movie.Id;
     }
 
-
-    public void UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto)
+    public bool UpdateGenresForMovie(int movieId, int[] newGenreIds)
     {
-        var movie = GetMovieByIdAndThrowIfNotFound(id);
-        _ = dto.GenreIds.All(CheckIfGenreExistsAndThrowIfNotFound);
+        var movie = _movies.FirstOrDefault(g => g.Id == movieId);
 
-        _genresInMovies.RemoveAll(g => g.MovieId == id);
-        foreach (var genreId in dto.GenreIds)
+        if (movie is null)
+        {
+            return false;
+        }
+
+        var allGenresExists = newGenreIds.All(CheckIfGenreExists);
+
+        if (!allGenresExists)
+        {
+            return false;
+        }
+
+        _genresInMovies.RemoveAll(g => g.MovieId == movieId);
+        foreach (var genreId in newGenreIds)
         {
             var genreInMovie = new GenreInMovie
             {
@@ -66,41 +74,52 @@ public class MovieRepository(
                 _genresInMovies.Add(genreInMovie);
             }
         }
+
+        return true;
     }
 
-    public void UpdateMovie(int id, UpdateMovieDto dto)
+    public bool UpdateMovie(
+        int movieId, 
+        string? title, 
+        string? description, 
+        int? durationInMinutes
+    )
     {
-        var movie = GetMovieByIdAndThrowIfNotFound(id);
+        var oldVersion = _movies.FirstOrDefault(g => g.Id == movieId);
 
-        movie.Title = dto.Title;
-        movie.Description = dto.Description;
-        movie.DurationInMinutes = dto.DurationInMinutes;
-    }
-
-    public void DeleteMovie(int id)
-    {
-        var movie = GetMovieByIdAndThrowIfNotFound(id);
-        _movies.Remove(movie);
-        _genresInMovies.RemoveAll(g => g.MovieId == id);
-    }
-
-    private Movie GetMovieByIdAndThrowIfNotFound(int id)
-    {
-        var movie = _movies.FirstOrDefault(m => m.Id == id);
-        if (movie is null)
+        if (oldVersion is null)
         {
-            throw new MovieNotFoundException(id);
+            return false;
         }
 
-        return movie;
+        oldVersion.Title = title ?? oldVersion.Title;
+        oldVersion.Description = description ?? oldVersion.Description;
+        oldVersion.DurationInMinutes = durationInMinutes ?? oldVersion.DurationInMinutes;
+
+        return true;
     }
 
-    private bool CheckIfGenreExistsAndThrowIfNotFound(int id)
+    public bool DeleteMovie(int movieId)
     {
-        var genre = _genres.FirstOrDefault(g => g.Id == id);
+        var movie = _movies.FirstOrDefault(g => g.Id == movieId);
+
+        if (movie is null)
+        {
+            return false;
+        }
+
+        _movies.Remove(movie);
+        _genresInMovies.RemoveAll(g => g.MovieId == movieId);
+
+        return true;
+    }
+
+    private bool CheckIfGenreExists(int genreId)
+    {
+        var genre = _genres.FirstOrDefault(g => g.Id == genreId);
         if (genre is null)
         {
-            throw new GenreNotFoundException(id);
+            return false;
         }
 
         return true;

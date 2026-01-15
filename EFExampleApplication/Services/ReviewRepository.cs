@@ -1,62 +1,56 @@
-using AutoMapper;
 using EFExampleApplication.Abstractions;
-using EFExampleApplication.Contracts;
 using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
 
 namespace EFExampleApplication.Services;
 
-public class ReviewRepository(
-    IMapper mapper,
-    IUserRepository userRepository,
-    IMovieRepository movieRepository
-) : IReviewRepository
+public class ReviewRepository : IReviewRepository
 {
     private readonly List<Review> _reviews = new();
 
-    public ListOfReviews GetReviews(int movieId)
+    public IReadOnlyList<Review> GetReviews(int movieId)
     {
-        var movie = movieRepository.GetMovie(movieId);
-        var movieReviews = _reviews.Where(r => r.MovieId == movieId).ToList();
-
-        return mapper.Map<ListOfReviews>((movie, movieReviews));
+        return _reviews.Where(r => r.MovieId == movieId).ToList();
     }
 
-    public ReviewVm GetReview(int movieId, int id)
+    public Review? GetReview(int movieId, int reviewId)
     {
-        var movie = movieRepository.GetMovie(movieId);
-        var review = GetReviewByIdAndThrowIfNotFound(id);
-        var user = userRepository.GetUserById(review.UserId);
-
-        return mapper.Map<ReviewVm>((movie, user, review));
+        return _reviews.FirstOrDefault(r => r.Id == reviewId && r.MovieId == movieId);
     }
 
-    public int AddReview(CreateReviewDto reviewDto)
+    public int AddReview(Review newReview)
     {
-        var movie = movieRepository.GetMovie(reviewDto.MovieId);
-        var user = userRepository.GetUserById(reviewDto.UserId);
-        var review = mapper.Map<Review>(reviewDto);
-        review.Id = _reviews.Count + 1;
-        review.MovieId = movie.Id;
-        review.UserId = user.Id;
+        newReview.Id = _reviews.Count + 1;
+        _reviews.Add(newReview);
 
-        _reviews.Add(review);
-
-        return review.Id;
+        return newReview.Id;
     }
 
-    public void UpdateReview(int id, UpdateReviewDto dto)
+    public bool UpdateReview(int reviewId, string? content, int? score)
     {
-        var review = GetReviewByIdAndThrowIfNotFound(id);
+        var review = GetReviewByIdAndThrowIfNotFound(reviewId);
 
-        review.Content = dto.Content;
-        review.Score = dto.Score;
+        if (review is null)
+        {
+            return false;
+        }
+
+        review.Content = content ?? review.Content;
+        review.Score = score ?? review.Score;
+
+        return true;
     }
 
-    public void DeleteReview(int id)
+    public bool DeleteReview(int reviewId)
     {
-        var review = GetReviewByIdAndThrowIfNotFound(id);
+        var review = _reviews.FirstOrDefault(r => r.Id == reviewId);
+        if (review is null)
+        {
+            return false;
+        }
+
         _reviews.Remove(review);
+        return true;
     }
 
     private Review GetReviewByIdAndThrowIfNotFound(int id)

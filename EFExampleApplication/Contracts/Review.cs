@@ -7,4 +7,4 @@ public record ReviewVm(int Id, string Content, int Score, string MovieTitle, str
 
 public record CreateReviewDto(string Content, int Score, int MovieId, int UserId);
 
-public record UpdateReviewDto(string Content, int Score);
+public record UpdateReviewDto(string? Content, int? Score);

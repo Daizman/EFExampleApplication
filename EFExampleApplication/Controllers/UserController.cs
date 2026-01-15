@@ -5,19 +5,19 @@ using Microsoft.AspNetCore.Mvc;
 namespace EFExampleApplication.Controllers;
 
 public class UserController(
-    IUserRepository userRepository
+    IUserService userService
 ) : BaseController
 {
-    private readonly IUserRepository _userRepository = userRepository;
+    private readonly IUserService _userService = userService;
 
     [HttpGet]
     public ActionResult<ListOfUsers> GetUsers()
-        => Ok(_userRepository.GetUsers());
+        => Ok(_userService.GetUsers());
 
     [HttpGet("by_login")]
     public ActionResult<UserVm> GetUser(string login)
     {
-        var user = _userRepository.GetUserByLogin(login);
+        var user = _userService.GetUserByLogin(login);
 
         if (user is null)
         {
@@ -29,12 +29,12 @@ public class UserController(
 
     [HttpPost]
     public ActionResult<int> AddUser(CreateUserDto dto)
-        => Ok(_userRepository.AddUser(dto));
+        => Ok(_userService.AddUser(dto));
 
     [HttpPut("{id}")]
     public ActionResult UpdateUser(int id, UpdateUserDto dto)
     {
-        _userRepository.UpdateUser(id, dto);
+        _userService.UpdateUser(id, dto);
 
         return NoContent();
     }
@@ -42,7 +42,7 @@ public class UserController(
     [HttpDelete("{id}")]
     public ActionResult DeleteUser(int id)
     {
-        _userRepository.DeleteUser(id);
+        _userService.DeleteUser(id);
 
         return NoContent();
     }

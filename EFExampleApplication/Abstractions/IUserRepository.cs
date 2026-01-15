@@ -1,13 +1,13 @@
-using EFExampleApplication.Contracts;
+using EFExampleApplication.Models;
 
 namespace EFExampleApplication.Abstractions;
 
 public interface IUserRepository
 {
-    ListOfUsers GetUsers();
-    UserVm GetUserById(int id);
-    UserVm GetUserByLogin(string login);
-    int AddUser(CreateUserDto dto);
-    void UpdateUser(int id, UpdateUserDto dto);
-    void DeleteUser(int id);
+    IReadOnlyList<User> GetUsers();
+    User? GetUserById(int userId);
+    User? GetUserByLogin(string login);
+    int AddUser(User newUser);
+    bool UpdateUser(int userId, string login);
+    bool DeleteUser(int userId);
 }

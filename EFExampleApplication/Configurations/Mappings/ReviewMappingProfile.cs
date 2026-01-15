@@ -8,14 +8,14 @@ public class ReviewMappingProfile : Profile
 {
     public ReviewMappingProfile()
     {
-        CreateMap<(MovieVm Movie, UserVm User, Review Review), ReviewVm>()
+        CreateMap<(Movie Movie, User User, Review Review), ReviewVm>()
             .ForCtorParam(nameof(ReviewVm.Id), opt => opt.MapFrom(src => src.Review.Id))
             .ForCtorParam(nameof(ReviewVm.Content), opt => opt.MapFrom(src => src.Review.Content))
             .ForCtorParam(nameof(ReviewVm.Score), opt => opt.MapFrom(src => src.Review.Score))
             .ForCtorParam(nameof(ReviewVm.MovieTitle), opt => opt.MapFrom(src => src.Movie.Title))
             .ForCtorParam(nameof(ReviewVm.ReviewerLogin), opt => opt.MapFrom(src => src.User.Login));
 
-        CreateMap<(MovieVm Movie, List<Review> Reviews), ListOfReviews>()
+        CreateMap<(Movie Movie, IReadOnlyList<Review> Reviews), ListOfReviews>()
             .ForCtorParam(
                 nameof(ListOfReviews.Reviews),
                 source => source
