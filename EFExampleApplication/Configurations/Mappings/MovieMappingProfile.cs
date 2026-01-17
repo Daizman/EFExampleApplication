@@ -13,7 +13,7 @@ public class MovieMappingProfile : Profile
             .ForCtorParam(nameof(MovieVm.Title), source => source.MapFrom(m => m.Title))
             .ForCtorParam(nameof(MovieVm.Description), source => source.MapFrom(m => m.Description))
             .ForCtorParam(nameof(MovieVm.DurationInMinutes), source => source.MapFrom(m => m.DurationInMinutes))
-            .ForCtorParam(nameof(MovieVm.Genres), source => source.MapFrom(m => m.Genres.Select(g => g.Genre).ToHashSet()));
+            .ForCtorParam(nameof(MovieVm.Genres), source => source.MapFrom(m => m.GenresForMovie.Select(g => g.Genre).ToHashSet()));
 
         CreateMap<Movie, MovieListVm>();
 

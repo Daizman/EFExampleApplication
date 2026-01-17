@@ -30,7 +30,7 @@ public class MovieRepository : IMovieRepository
         var genres = _genresInMovies
             .Where(g => g.MovieId == movieId)
             .ToList();
-        movie.Genres = genres;
+        movie.GenresForMovie = genres;
 
         return movie;
     }
