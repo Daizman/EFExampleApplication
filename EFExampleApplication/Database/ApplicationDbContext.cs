@@ -1,9 +1,10 @@
-﻿using EFExampleApplication.Models;
+﻿using EFExampleApplication.Abstractions;
+using EFExampleApplication.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Database;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public DbSet<User> Users { get; set; }
     public DbSet<Movie> Movies { get; set; }
