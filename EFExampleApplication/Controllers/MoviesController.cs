@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EFExampleApplication.Controllers;
 
-public class MovieController(
+public class MoviesController(
     IMovieService movieService
 ) : BaseController
 {

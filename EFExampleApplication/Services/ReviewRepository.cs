@@ -28,7 +28,7 @@ public class ReviewRepository : IReviewRepository
 
     public bool UpdateReview(int reviewId, string? content, int? score)
     {
-        var review = GetReviewByIdAndThrowIfNotFound(reviewId);
+        var review = GetRevieByIdAndThrowIfNotFound(reviewId);
 
         if (review is null)
         {
@@ -53,7 +53,7 @@ public class ReviewRepository : IReviewRepository
         return true;
     }
 
-    private Review GetReviewByIdAndThrowIfNotFound(int id)
+    private Review GetRevieByIdAndThrowIfNotFound(int id)
     {
         var review = _reviews.FirstOrDefault(r => r.Id == id);
         if (review is null)

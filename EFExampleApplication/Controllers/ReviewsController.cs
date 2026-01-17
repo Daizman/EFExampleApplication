@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EFExampleApplication.Controllers;
 
-public class ReviewController(
+public class ReviewsController(
     IReviewService reviewService
 ) : BaseController
 {

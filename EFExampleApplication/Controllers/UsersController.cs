@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EFExampleApplication.Controllers;
 
-public class UserController(
+public class UsersController(
     IUserService userService
 ) : BaseController
 {
