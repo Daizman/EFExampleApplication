@@ -7,6 +7,6 @@ public class Movie
     public string? Description { get; set; }
     public int DurationInMinutes { get; set; }
 
-    public virtual ICollection<Review> Reviews { get; set; } = [];
-    public virtual ICollection<GenreInMovie> GenresForMovie { get; set; } = [];
+    public ICollection<Review> Reviews { get; set; } = [];
+    public ICollection<GenreInMovie> GenresForMovie { get; set; } = [];
 }

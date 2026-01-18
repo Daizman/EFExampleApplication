@@ -8,7 +8,7 @@ public class GenreInMovieEntityConfiguration : IEntityTypeConfiguration<GenreInM
 {
     public void Configure(EntityTypeBuilder<GenreInMovie> builder)
     {
-        builder.HasKey(genreInMovie => new { genreInMovie.MovieId, genreInMovie.GenreId });
+        builder.HasKey(genreInMovie => new { genreInMovie.MovieId, genreInMovie.GenreId });
 
         builder.HasOne(genreInMovie => genreInMovie.Genre)
             .WithMany(genre => genre.MoviesForGenre)

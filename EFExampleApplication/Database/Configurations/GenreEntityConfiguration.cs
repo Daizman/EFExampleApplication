@@ -9,6 +9,11 @@ public class GenreEntityConfiguration : IEntityTypeConfiguration<Genre>
     public void Configure(EntityTypeBuilder<Genre> builder)
     {
         builder.HasKey(genre => genre.Id);
+        builder.Property(genre => genre.Name)
+          .IsRequired()
+          .HasMaxLength(128);
+        builder.HasIndex(genre => genre.Name).IsUnique();
+
         builder.HasData(
           new() { Id = 1, Name = "Action" },
           new() { Id = 2, Name = "Comedy" },

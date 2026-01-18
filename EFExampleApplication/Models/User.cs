@@ -6,5 +6,5 @@ public class User
     public required string Login { get; set; }
     public required string Password { get; set; }
 
-    public required virtual ICollection<Review> Reviews { get; set; }
+    public ICollection<Review> Reviews { get; set; } = [];
 }
