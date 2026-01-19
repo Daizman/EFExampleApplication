@@ -34,13 +34,9 @@ public static class Composer
         this IServiceCollection services
     )
     {
-        services.AddSingleton<IUserRepository, UserRepository>();
-        services.AddSingleton<IMovieRepository, MovieRepository>();
-        services.AddSingleton<IReviewRepository, ReviewRepository>();
-
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IMovieService, MovieService>();
-        services.AddSingleton<IReviewService, ReviewService>();
+        services.AddScoped<IReviewService, ReviewService>();
 
         return services;
     }

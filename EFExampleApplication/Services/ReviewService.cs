@@ -3,75 +3,88 @@ using EFExampleApplication.Abstractions;
 using EFExampleApplication.Contracts;
 using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 
 public class ReviewService(
-    IReviewRepository reviewRepository,
-    IMovieRepository movieRepository,
-    IUserRepository userRepository,
+    IApplicationDbContext applicationDbContext,
     IMapper mapper
 ) : IReviewService
 {
     public int AddReview(CreateReviewDto reviewDto)
     {
-        var movie = GetMoviewAndThrowIfNotFound(reviewDto.MovieId);
-        var user = GetUserAndThrowIfNotFound(reviewDto.UserId);
-        var review = mapper.Map<Review>(reviewDto);
-        review.MovieId = movie.Id;
-        review.UserId = user.Id;
+        var movieExists = applicationDbContext.Movies.Any(m => m.Id == reviewDto.MovieId);
 
-        return reviewRepository.AddReview(review);
+        if (!movieExists)
+        {
+            throw new MovieNotFoundException(reviewDto.MovieId);
+        }
+
+        var userExists = applicationDbContext.Users.Any(u => u.Id == reviewDto.UserId);
+
+        if (!userExists)
+        {
+            throw new UserNotFoundException(reviewDto.UserId);
+        }
+
+        var review = mapper.Map<Review>(reviewDto);
+
+        applicationDbContext.Reviews.Add(review);
+
+        applicationDbContext.SaveChanges();
+
+        return review.Id;
     }
 
     public void DeleteReview(int id)
     {
-        _ = reviewRepository.DeleteReview(id);
+        var deleted = applicationDbContext.Reviews
+            .Where(r => r.Id == id)
+            .ExecuteDelete();
+        if (deleted == 0)
+        {
+            throw new ReviewNotFoundException(id);
+        }
     }
 
     public ReviewVm GetReview(int movieId, int id)
     {
-        var movie = GetMoviewAndThrowIfNotFound(movieId);
-
-        var review = reviewRepository.GetReview(movieId, id);
+        var review = applicationDbContext.Reviews
+            .Include(r => r.Movie)
+            .Include(r => r.User)
+            .AsNoTracking()
+            .FirstOrDefault(r => r.MovieId == movieId && r.Id == id);
         if (review is null)
         {
-            throw new ReviewNotFoundException(id);
+            throw new ReviewNotFoundException(movieId, id);
         }
 
-        var user = GetUserAndThrowIfNotFound(review.UserId);
-
-        return mapper.Map<ReviewVm>((movie, user, review));
+        return mapper.Map<ReviewVm>(review);
     }
 
     public ListOfReviews GetReviews(int movieId)
     {
-        var movie = movieRepository.GetMovie(movieId);
-        var reviews = reviewRepository.GetReviews(movieId);
+        var movie = applicationDbContext.Movies
+            .Include(r => r.Reviews)
+            .AsNoTracking()
+            .FirstOrDefault(m => m.Id == movieId);
 
-        return mapper.Map<ListOfReviews>((movie, reviews));
+        return mapper.Map<ListOfReviews>(movie);
     }
 
     public void UpdateReview(int id, UpdateReviewDto dto)
     {
-        reviewRepository.UpdateReview(id, dto.Content, dto.Score);
-    }
+        var updated = applicationDbContext.Reviews
+            .Where(r => r.Id == id)
+            .ExecuteUpdate(setters => setters
+                .SetProperty(r => r.Content, r => dto.Content ?? r.Content)
+                .SetProperty(r => r.Score, r => dto.Score ?? r.Score)
+            );
 
-    private Movie GetMoviewAndThrowIfNotFound(int movieId)
-    {
-        var movie = movieRepository.GetMovie(movieId);
-        if (movie is null)
+        if (updated == 0)
         {
-            throw new MovieNotFoundException(movieId);
+            throw new ReviewNotFoundException(id);
         }
-
-        return movie;
-    }
-
-    private User GetUserAndThrowIfNotFound(int userId)
-    {
-        var user = userRepository.GetUserById(userId);
-
-        return user ?? throw new UserNotFoundException(userId);
     }
 }
