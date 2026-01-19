@@ -9,8 +9,6 @@ namespace EFExampleApplication.Services;
 
 public class MovieService : IMovieService
 {
-    // Тут private readonly, а не primary constructor, просто чтобы было видно
-    // разные способы и вы выбрали наиболее приятный вам
     private readonly IApplicationDbContext _applicationDbContext;
     private readonly IMapper _mapper;
 
@@ -34,7 +32,6 @@ public class MovieService : IMovieService
     {
         var deleted = _applicationDbContext.Movies
             .Where(movie => movie.Id == id)
-            // Новый, модный способ удалять из БД напрямую, даже SaveChanges вызывать не нужно
             .ExecuteDelete();
         if (deleted == 0)
         {
@@ -103,7 +100,6 @@ public class MovieService : IMovieService
     {
         var updated = _applicationDbContext.Movies
             .Where(m => m.Id == id)
-            // Новый, модный способ обновлять данные в БД напрямую, даже SaveChanges вызывать не нужно
             .ExecuteUpdate(setters => setters
                 .SetProperty(m => m.Title, m => dto.Title ?? m.Title)
                 .SetProperty(m => m.Description, m => dto.Description ?? m.Description)
