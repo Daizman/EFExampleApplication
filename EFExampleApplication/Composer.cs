@@ -39,7 +39,7 @@ public static class Composer
         services.AddSingleton<IReviewRepository, ReviewRepository>();
 
         services.AddScoped<IUserService, UserService>();
-        services.AddSingleton<IMovieService, MovieService>();
+        services.AddScoped<IMovieService, MovieService>();
         services.AddSingleton<IReviewService, ReviewService>();
 
         return services;

@@ -3,8 +3,8 @@ namespace EFExampleApplication.Models;
 public class GenreInMovie
 {
     public int MovieId { get; set; }
-    public required Movie Movie { get; set; }
+    public Movie Movie { get; set; } = null!;
 
     public int GenreId { get; set; }
-    public required Genre Genre { get; set; }
+    public Genre Genre { get; set; } = null!;
 }

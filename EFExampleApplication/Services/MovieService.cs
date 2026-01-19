@@ -3,36 +3,52 @@ using EFExampleApplication.Abstractions;
 using EFExampleApplication.Contracts;
 using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EFExampleApplication.Services;
 
 public class MovieService : IMovieService
 {
-    private readonly IMovieRepository _movieRepository;
+    // Тут private readonly, а не primary constructor, просто чтобы было видно
+    // разные способы и вы выбрали наиболее приятный вам
+    private readonly IApplicationDbContext _applicationDbContext;
     private readonly IMapper _mapper;
 
-    public MovieService(IMovieRepository movieRepository, IMapper mapper)
+    public MovieService(IApplicationDbContext applicationDbContext, IMapper mapper)
     {
-        _movieRepository = movieRepository;
+        _applicationDbContext = applicationDbContext;
         _mapper = mapper;
     }
 
     public int AddMovie(CreateMovieDto movieDto)
     {
         var newMovie = _mapper.Map<Movie>(movieDto);
-        var movieId = _movieRepository.AddMovie(newMovie);
+        _applicationDbContext.Movies.Add(newMovie);
 
-        return movieId;
+        _applicationDbContext.SaveChanges();
+
+        return newMovie.Id;
     }
 
     public void DeleteMovie(int id)
     {
-        _ = _movieRepository.DeleteMovie(id);
+        var deleted = _applicationDbContext.Movies
+            .Where(movie => movie.Id == id)
+            // Новый, модный способ удалять из БД напрямую, даже SaveChanges вызывать не нужно
+            .ExecuteDelete();
+        if (deleted == 0)
+        {
+            throw new MovieNotFoundException(id);
+        }
     }
 
     public MovieVm GetMovie(int id)
     {
-        var movie = _movieRepository.GetMovie(id);
+        var movie = _applicationDbContext.Movies
+            .Include(m => m.GenresForMovie)
+            .ThenInclude(gInM => gInM.Genre)
+            .AsNoTracking()
+            .FirstOrDefault(m => m.Id == id);
 
         if (movie is null)
         {
@@ -44,18 +60,56 @@ public class MovieService : IMovieService
 
     public ListOfMovies GetMovies()
     {
-        var movies = _movieRepository.GetMovies();
+        var movies = _applicationDbContext.Movies.AsNoTracking().ToList();
 
         return _mapper.Map<ListOfMovies>(movies);
     }
 
     public void UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto)
     {
-        _ = _movieRepository.UpdateGenresForMovie(id, dto.GenreIds);
+        var movieExists = _applicationDbContext
+            .Movies
+            .Any(m => m.Id == id);
+
+        if (!movieExists)
+        {
+            throw new MovieNotFoundException(id);
+        }
+
+        var newGenreIds = _applicationDbContext.Genres
+            .Where(g => dto.GenreIds.Contains(g.Id))
+            .Select(g => g.Id)
+            .ToList();
+
+        if (newGenreIds.Count != dto.GenreIds.Length)
+        {
+            throw new GenreNotFoundException();
+        }
+
+        var existingGenres = _applicationDbContext.GenreInMovies.Where(gInM => gInM.MovieId == id);
+        _applicationDbContext.GenreInMovies.RemoveRange(existingGenres);
+
+        var newGenres = newGenreIds.Select(genreId => 
+            new GenreInMovie
+            {
+                MovieId = id,
+                GenreId = genreId,
+            }).ToList();
+        _applicationDbContext.GenreInMovies.AddRange(newGenres);
+        _applicationDbContext.SaveChanges();
     }
 
     public void UpdateMovie(int id, UpdateMovieDto dto)
     {
-        _ = _movieRepository.UpdateMovie(id, dto.Title, dto.Description, dto.DurationInMinutes);
+        var updated = _applicationDbContext.Movies
+            .Where(m => m.Id == id)
+            // Новый, модный способ обновлять данные в БД напрямую, даже SaveChanges вызывать не нужно
+            .ExecuteUpdate(setters => setters
+                .SetProperty(m => m.Title, m => dto.Title ?? m.Title)
+                .SetProperty(m => m.Description, m => dto.Description ?? m.Description)
+                .SetProperty(m => m.DurationInMinutes, m => dto.DurationInMinutes ?? m.DurationInMinutes)
+            );
+
+        if (updated == 0) throw new MovieNotFoundException(id);
     }
 }

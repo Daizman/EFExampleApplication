@@ -7,8 +7,8 @@ public class Review
     public int Score { get; set; }
 
     public int MovieId { get; set; }
-    public required Movie Movie { get; set; }
+    public Movie Movie { get; set; } = null!;
 
     public int UserId { get; set; }
-    public required User User { get; set; }
+    public User User { get; set; } = null!;
 }
