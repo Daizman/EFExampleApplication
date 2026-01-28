@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using EFExampleApplication.Abstractions;
 using EFExampleApplication.Contracts;
 using EFExampleApplication.Exceptions;
@@ -12,35 +13,46 @@ public class UserService(
     IMapper mapper
 ) : IUserService
 {
-    public UserVm GetUserById(int id)
+    public UserVm GetUserById(UserId id)
     {
-        var user = applicationDbContext.Users.AsNoTracking().FirstOrDefault(user => user.Id == id);
+        var user = applicationDbContext.Users
+            .AsNoTracking()
+            .Where(u => u.Id == id)
+            .ProjectTo<UserVm>(mapper.ConfigurationProvider)
+            .FirstOrDefault();
 
         if (user is null)
         {
             throw new UserNotFoundException(id);
         }
 
-        return mapper.Map<UserVm>(user);
+        return user;
     }
 
     public UserVm GetUserByLogin(string login)
     {
-        var user = applicationDbContext.Users.AsNoTracking().FirstOrDefault(user => user.Login == login);
+        var user = applicationDbContext.Users
+            .AsNoTracking()
+            .Where(u => u.Login == login)
+            .ProjectTo<UserVm>(mapper.ConfigurationProvider)
+            .FirstOrDefault();
 
         if (user is null)
         {
             throw new UserNotFoundException(login);
         }
 
-        return mapper.Map<UserVm>(user);
+        return user;
     }
 
     public ListOfUsers GetUsers()
     {
-        var users = applicationDbContext.Users.AsNoTracking().ToList();
+        var users = applicationDbContext.Users
+            .AsNoTracking()
+            .Select(u => new UserListVm(u.Id, u.Login))
+            .ToHashSet();
 
-        return mapper.Map<ListOfUsers>(users);
+        return new ListOfUsers(users);
     }
 
     public int AddUser(CreateUserDto dto)
@@ -54,7 +66,7 @@ public class UserService(
         return newUser.Id;
     }
 
-    public void UpdateUser(int id, UpdateUserDto dto)
+    public void UpdateUser(UserId id, UpdateUserDto dto)
     {
         var user = applicationDbContext.Users.FirstOrDefault(user => user.Id == id);
 
@@ -68,7 +80,7 @@ public class UserService(
         applicationDbContext.SaveChanges();
     }
 
-    public void DeleteUser(int id)
+    public void DeleteUser(UserId id)
     {
         var user = applicationDbContext.Users.FirstOrDefault(user => user.Id == id);
 

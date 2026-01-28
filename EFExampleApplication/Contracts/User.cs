@@ -1,9 +1,9 @@
 namespace EFExampleApplication.Contracts;
 
-public record UserListVm(int Id, string Login);
-public record ListOfUsers(IReadOnlySet<UserListVm> Users);
+public record UserListVm(UserId Id, string Login);
+public record ListOfUsers(IReadOnlyCollection<UserListVm> Users);
 
-public record UserVm(int Id, string Login);
+public record UserVm(UserId Id, string Login);
 
 public record CreateUserDto(string Login, string Password);
 

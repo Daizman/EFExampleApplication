@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using EFExampleApplication.Abstractions;
 using EFExampleApplication.Contracts;
 using EFExampleApplication.Exceptions;
@@ -18,6 +19,31 @@ public class MovieService : IMovieService
         _mapper = mapper;
     }
 
+    public MovieVm GetMovie(MovieId id)
+    {
+        var movie = _applicationDbContext.Movies
+            .AsNoTracking()
+            .Where(m => m.Id == id)
+            .ProjectTo<MovieVm>(_mapper.ConfigurationProvider)
+            .FirstOrDefault();
+
+        if (movie is null)
+        {
+            throw new MovieNotFoundException(id);
+        }
+
+        return movie;
+    }
+
+    public ListOfMovies GetMovies()
+    {
+        var movies = _applicationDbContext.Movies.AsNoTracking()
+            .Select(m => new MovieListVm(m.Id, m.Title))
+            .ToList();
+
+        return new ListOfMovies(movies);
+    }
+
     public int AddMovie(CreateMovieDto movieDto)
     {
         var newMovie = _mapper.Map<Movie>(movieDto);
@@ -28,7 +54,7 @@ public class MovieService : IMovieService
         return newMovie.Id;
     }
 
-    public void DeleteMovie(int id)
+    public void DeleteMovie(MovieId id)
     {
         var deleted = _applicationDbContext.Movies
             .Where(movie => movie.Id == id)
@@ -39,30 +65,7 @@ public class MovieService : IMovieService
         }
     }
 
-    public MovieVm GetMovie(int id)
-    {
-        var movie = _applicationDbContext.Movies
-            .Include(m => m.GenresForMovie)
-            .ThenInclude(gInM => gInM.Genre)
-            .AsNoTracking()
-            .FirstOrDefault(m => m.Id == id);
-
-        if (movie is null)
-        {
-            throw new MovieNotFoundException(id);
-        }
-
-        return _mapper.Map<MovieVm>(movie);
-    }
-
-    public ListOfMovies GetMovies()
-    {
-        var movies = _applicationDbContext.Movies.AsNoTracking().ToList();
-
-        return _mapper.Map<ListOfMovies>(movies);
-    }
-
-    public void UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto)
+    public void UpdateGenresForMovie(MovieId id, UpdateGenresForMovieDto dto)
     {
         var movieExists = _applicationDbContext
             .Movies
@@ -74,6 +77,7 @@ public class MovieService : IMovieService
         }
 
         var newGenreIds = _applicationDbContext.Genres
+            .AsNoTracking()
             .Where(g => dto.GenreIds.Contains(g.Id))
             .Select(g => g.Id)
             .ToList();
@@ -96,7 +100,7 @@ public class MovieService : IMovieService
         _applicationDbContext.SaveChanges();
     }
 
-    public void UpdateMovie(int id, UpdateMovieDto dto)
+    public void UpdateMovie(MovieId id, UpdateMovieDto dto)
     {
         var updated = _applicationDbContext.Movies
             .Where(m => m.Id == id)
