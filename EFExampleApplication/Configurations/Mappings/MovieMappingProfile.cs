@@ -15,9 +15,7 @@ public class MovieMappingProfile : Profile
             .ForCtorParam(nameof(MovieVm.DurationInMinutes), source => source.MapFrom(m => m.DurationInMinutes))
             .ForCtorParam(nameof(MovieVm.Genres), source => source.MapFrom(m => m.GenresForMovie.Select(g => g.Genre)));
 
-        CreateMap<Movie, MovieListVm>()
-            .ForCtorParam(nameof(MovieListVm.Id), source => source.MapFrom(m => m.Id))
-            .ForCtorParam(nameof(MovieListVm.Title), source => source.MapFrom(m => m.Title));
+        CreateMap<Movie, MovieListVm>();
 
         CreateMap<ICollection<Movie>, ListOfMovies>()
             .ForCtorParam(nameof(ListOfMovies.Movies), source => source.MapFrom(movieList => movieList));

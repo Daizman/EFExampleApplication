@@ -75,7 +75,7 @@ public class UserService(
             throw new UserNotFoundException(id);
         }
 
-        user.Login = dto.Login ?? user.Login;
+        user.Login = dto.Login;
         
         applicationDbContext.SaveChanges();
     }
