@@ -14,6 +14,7 @@ public class MoviesController(
     [HttpGet("{id}")]
     public ActionResult<MovieVm> GetMovie(int id) => Ok(movieService.GetMovie(id));
 
+    [Obsolete("Use POST /api/MoviesV2 instead")]
     [HttpPost]
     public ActionResult<int> AddMovie(CreateMovieDto dto)
     {
@@ -22,6 +23,7 @@ public class MoviesController(
         return CreatedAtAction(nameof(GetMovie), new { id }, id);
     }
 
+    [Obsolete("Use PUT /api/MoviesV2/{id} instead")]
     [HttpPut("{id}/genres")]
     public ActionResult UpdateGenresForMovie(int id, UpdateGenresForMovieDto dto)
     {
@@ -30,6 +32,7 @@ public class MoviesController(
         return NoContent();
     }
 
+    [Obsolete("Use PUT /api/MoviesV2/{id} instead")]
     [HttpPut("{id}")]
     public ActionResult UpdateMovie(int id, UpdateMovieDto dto)
     {

@@ -1,7 +1,8 @@
-﻿using AutoMapper;
+using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using EFExampleApplication.Abstractions;
 using EFExampleApplication.Contracts;
+using EFExampleApplication.Contracts.V2;
 using EFExampleApplication.Exceptions;
 using EFExampleApplication.Models;
 using Microsoft.EntityFrameworkCore;
@@ -44,14 +45,27 @@ public class MovieService : IMovieService
         return new ListOfMovies(movies);
     }
 
-    public int AddMovie(CreateMovieDto movieDto)
+    public int AddMovie(CreateMovieDto dto)
     {
-        var newMovie = _mapper.Map<Movie>(movieDto);
-        _applicationDbContext.Movies.Add(newMovie);
+        var movie = _mapper.Map<Movie>(dto);
+        _applicationDbContext.Movies.Add(movie);
 
         _applicationDbContext.SaveChanges();
 
-        return newMovie.Id;
+        return movie.Id;
+    }
+
+    public int AddMovie(CreateMovieV2Dto dto)
+    {
+        var movie = _mapper.Map<Movie>(dto);
+
+        UpdateGenresForMovie(movie, dto.Genres);
+
+        _applicationDbContext.Movies.Add(movie);
+
+        _applicationDbContext.SaveChanges();
+
+        return movie.Id;
     }
 
     public void DeleteMovie(MovieId id)
@@ -90,7 +104,7 @@ public class MovieService : IMovieService
         var existingGenres = _applicationDbContext.GenreInMovies.Where(gInM => gInM.MovieId == id);
         _applicationDbContext.GenreInMovies.RemoveRange(existingGenres);
 
-        var newGenres = newGenreIds.Select(genreId => 
+        var newGenres = newGenreIds.Select(genreId =>
             new GenreInMovie
             {
                 MovieId = id,
@@ -111,5 +125,66 @@ public class MovieService : IMovieService
             );
 
         if (updated == 0) throw new MovieNotFoundException(id);
+    }
+
+    public void UpdateMovie(int id, UpdateMovieV2Dto dto)
+    {
+        var movie = _applicationDbContext.Movies
+            .Include(m => m.GenresForMovie)
+            .FirstOrDefault(m => m.Id == id);
+        if (movie is null)
+        {
+            throw new MovieNotFoundException(id);
+        }
+
+        if (dto.Genres is not null)
+        {
+            UpdateGenresForMovie(movie, dto.Genres);
+        }
+
+        movie.Title = dto.Title ?? movie.Title;
+        movie.Description = dto.Description ?? movie.Description;
+        movie.DurationInMinutes = dto.DurationInMinutes ?? movie.DurationInMinutes;
+
+        _applicationDbContext.SaveChanges();
+    }
+
+    private void UpdateGenresForMovie(Movie movie, IReadOnlyCollection<GenreDto> genres)
+    {
+        movie.GenresForMovie.Clear();
+        var genreById = GetGenresDictionary(genres);
+        foreach (var genreDto in genres)
+        {
+            if (genreDto.Id.HasValue)
+            {
+                if (!genreById.TryGetValue(genreDto.Id.Value, out var existsingGenre))
+                {
+                    throw new GenreNotFoundException(genreDto.Id.Value);
+                }
+                movie.GenresForMovie.Add(new GenreInMovie
+                {
+                    GenreId = existsingGenre.Id,
+                    Genre = existsingGenre,
+                });
+                continue;
+            }
+            if (genreDto.Name is not null)
+            {
+                movie.GenresForMovie.Add(new GenreInMovie
+                {
+                    Genre = new Genre { Name = genreDto.Name },
+                });
+            }
+        }
+    }
+
+    private Dictionary<GenreId, Genre> GetGenresDictionary(IReadOnlyCollection<GenreDto> genres)
+    {
+        var genreIds = genres.Where(g => g.Id.HasValue).Select(g => g.Id!.Value);
+        var genreById = _applicationDbContext.Genres
+          .Where(g => genreIds.Contains(g.Id))
+          .ToDictionary(g => g.Id, g => g);
+
+        return genreById;
     }
 }

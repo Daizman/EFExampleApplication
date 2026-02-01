@@ -1,5 +1,6 @@
 using AutoMapper;
 using EFExampleApplication.Contracts;
+using EFExampleApplication.Contracts.V2;
 using EFExampleApplication.Models;
 
 namespace EFExampleApplication.Configurations.Mappings;
@@ -21,6 +22,8 @@ public class MovieMappingProfile : Profile
             .ForCtorParam(nameof(ListOfMovies.Movies), source => source.MapFrom(movieList => movieList));
 
         CreateMap<CreateMovieDto, Movie>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore());
+        CreateMap<CreateMovieV2Dto, Movie>()
             .ForMember(dest => dest.Id, opt => opt.Ignore());
     }
 }
