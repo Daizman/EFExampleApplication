@@ -10,7 +10,8 @@ namespace EFExampleApplication.Services;
 
 public class UserService(
     IApplicationDbContext applicationDbContext,
-    IMapper mapper
+    IMapper mapper,
+    ILogger<UserService> logger
 ) : IUserService
 {
     public UserVm GetUserById(UserId id)
@@ -23,6 +24,7 @@ public class UserService(
 
         if (user is null)
         {
+            logger.LogError("User with {Id} not found", id);
             throw new UserNotFoundException(id);
         }
 
@@ -39,6 +41,7 @@ public class UserService(
 
         if (user is null)
         {
+            logger.LogError("User with {Login} not found", login);
             throw new UserNotFoundException(login);
         }
 
@@ -63,6 +66,8 @@ public class UserService(
 
         applicationDbContext.SaveChanges();
 
+        logger.LogInformation("User successfully added {Id}", newUser.Id);
+
         return newUser.Id;
     }
 
@@ -72,12 +77,15 @@ public class UserService(
 
         if (user is null)
         {
+            logger.LogError("Coudn't update user with {Id}. Not found", id);
             throw new UserNotFoundException(id);
         }
 
         user.Login = dto.Login;
         
         applicationDbContext.SaveChanges();
+
+        logger.LogInformation("User successfully updated {Id}", id);
     }
 
     public void DeleteUser(UserId id)
@@ -86,11 +94,14 @@ public class UserService(
 
         if (user is null)
         {
+            logger.LogError("Coudn't delete user with {Id}. Not found", id);
             throw new UserNotFoundException(id);
         }
 
         applicationDbContext.Users.Remove(user);
 
         applicationDbContext.SaveChanges();
+
+        logger.LogInformation("User successfully deleted {Id}", id);
     }
 }

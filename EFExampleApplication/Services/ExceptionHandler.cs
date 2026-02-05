@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Diagnostics;
 
 namespace EFExampleApplication.Services;
 
-public class ExceptionHandler : IExceptionHandler
+public class ExceptionHandler(ILogger<ExceptionHandler> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -24,6 +24,7 @@ public class ExceptionHandler : IExceptionHandler
                 return true;
         }
 
+        logger.LogError(exception, "An unexpected exception occurred");
         httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
         await httpContext.Response.WriteAsync(string.Empty, cancellationToken: cancellationToken);
 

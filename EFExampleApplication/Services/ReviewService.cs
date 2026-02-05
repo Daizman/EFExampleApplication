@@ -10,7 +10,8 @@ namespace EFExampleApplication.Services;
 
 public class ReviewService(
     IApplicationDbContext applicationDbContext,
-    IMapper mapper
+    IMapper mapper,
+    ILogger<ReviewService> logger
 ) : IReviewService
 {
     public ReviewVm GetReview(MovieId movieId, ReviewId id)
@@ -23,6 +24,7 @@ public class ReviewService(
 
         if (review is null)
         {
+            logger.LogError("Review with {Id} for movie {MovieId} not found.", id, movieId);
             throw new ReviewNotFoundException(movieId, id);
         }
 
@@ -40,6 +42,7 @@ public class ReviewService(
 
         if (movieReviews is null)
         {
+            logger.LogError("Reviews for movie {MovieId} not found.", movieId);
             throw new MovieNotFoundException(movieId);
         }
 
@@ -52,6 +55,7 @@ public class ReviewService(
 
         if (!movieExists)
         {
+            logger.LogError("[{UserId}] Couldn't add review to movie {MovieId}. Movie not found", reviewDto.UserId, reviewDto.MovieId);
             throw new MovieNotFoundException(reviewDto.MovieId);
         }
 
@@ -59,6 +63,7 @@ public class ReviewService(
 
         if (!userExists)
         {
+            logger.LogError("[{UserId}] Couldn't add review to movie {MovieId}. User not found", reviewDto.UserId, reviewDto.MovieId);
             throw new UserNotFoundException(reviewDto.UserId);
         }
 
@@ -67,6 +72,8 @@ public class ReviewService(
         applicationDbContext.Reviews.Add(review);
 
         applicationDbContext.SaveChanges();
+
+        logger.LogInformation("[{UserId}] Successfully added new review for movie {MovieId}", reviewDto.UserId, reviewDto.MovieId);
 
         return review.Id;
     }
@@ -78,8 +85,11 @@ public class ReviewService(
             .ExecuteDelete();
         if (deleted == 0)
         {
+            logger.LogError("Coudln't delete review with {Id}. Not found.", id);
             throw new ReviewNotFoundException(id);
         }
+
+        logger.LogInformation("Successfully deleted review {Id}", id);
     }
 
     public void UpdateReview(ReviewId id, UpdateReviewDto dto)
@@ -93,7 +103,10 @@ public class ReviewService(
 
         if (updated == 0)
         {
+            logger.LogError("Coudln't update review with {Id}. Not found.", id);
             throw new ReviewNotFoundException(id);
         }
+
+        logger.LogInformation("Successfully updated review {Id}", id);
     }
 }

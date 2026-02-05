@@ -13,11 +13,17 @@ public class MovieService : IMovieService
 {
     private readonly IApplicationDbContext _applicationDbContext;
     private readonly IMapper _mapper;
+    private readonly ILogger<MovieService> _logger;
 
-    public MovieService(IApplicationDbContext applicationDbContext, IMapper mapper)
+    public MovieService(
+        IApplicationDbContext applicationDbContext, 
+        IMapper mapper,
+        ILogger<MovieService> logger
+    )
     {
         _applicationDbContext = applicationDbContext;
         _mapper = mapper;
+        _logger = logger;
     }
 
     public MovieVm GetMovie(MovieId id)
@@ -30,6 +36,7 @@ public class MovieService : IMovieService
 
         if (movie is null)
         {
+            _logger.LogError("Couldn't get movie with {Id}. Not found.", id);
             throw new MovieNotFoundException(id);
         }
 
@@ -52,6 +59,8 @@ public class MovieService : IMovieService
 
         _applicationDbContext.SaveChanges();
 
+        _logger.LogInformation("Successfully added movie with {Id}", movie.Id);
+
         return movie.Id;
     }
 
@@ -65,6 +74,8 @@ public class MovieService : IMovieService
 
         _applicationDbContext.SaveChanges();
 
+        _logger.LogInformation("Successfully added movie with {Id}", movie.Id);
+
         return movie.Id;
     }
 
@@ -75,8 +86,11 @@ public class MovieService : IMovieService
             .ExecuteDelete();
         if (deleted == 0)
         {
+            _logger.LogError("Couldn't delete movie with {Id}. Not found.", id);
             throw new MovieNotFoundException(id);
         }
+
+        _logger.LogInformation("Successfully deleted movie with {Id}", id);
     }
 
     public void UpdateGenresForMovie(MovieId id, UpdateGenresForMovieDto dto)
@@ -87,6 +101,7 @@ public class MovieService : IMovieService
 
         if (!movieExists)
         {
+            _logger.LogError("Couldn't change genres for movie {Id}. Not found.", id);
             throw new MovieNotFoundException(id);
         }
 
@@ -98,6 +113,7 @@ public class MovieService : IMovieService
 
         if (newGenreIds.Count != dto.GenreIds.Length)
         {
+            _logger.LogError("There are not existsing genre in new genres for movie {Id}", id);
             throw new GenreNotFoundException();
         }
 
@@ -112,6 +128,8 @@ public class MovieService : IMovieService
             }).ToList();
         _applicationDbContext.GenreInMovies.AddRange(newGenres);
         _applicationDbContext.SaveChanges();
+
+        _logger.LogInformation("Successfully update genres for movie with {Id}", id);
     }
 
     public void UpdateMovie(MovieId id, UpdateMovieDto dto)
@@ -124,7 +142,13 @@ public class MovieService : IMovieService
                 .SetProperty(m => m.DurationInMinutes, m => dto.DurationInMinutes ?? m.DurationInMinutes)
             );
 
-        if (updated == 0) throw new MovieNotFoundException(id);
+        if (updated == 0)
+        {
+            _logger.LogError("Couldn't update movie with {Id}. Not found.", id);
+            throw new MovieNotFoundException(id);
+        }
+
+        _logger.LogInformation("Successfully update movie with {Id}", id);
     }
 
     public void UpdateMovie(int id, UpdateMovieV2Dto dto)
@@ -134,6 +158,7 @@ public class MovieService : IMovieService
             .FirstOrDefault(m => m.Id == id);
         if (movie is null)
         {
+            _logger.LogError("Couldn't update movie with {Id}. Not found.", id);
             throw new MovieNotFoundException(id);
         }
 
@@ -147,6 +172,8 @@ public class MovieService : IMovieService
         movie.DurationInMinutes = dto.DurationInMinutes ?? movie.DurationInMinutes;
 
         _applicationDbContext.SaveChanges();
+
+        _logger.LogInformation("Successfully update movie with {Id}", id);
     }
 
     private void UpdateGenresForMovie(Movie movie, IReadOnlyCollection<GenreDto> genres)
@@ -159,6 +186,9 @@ public class MovieService : IMovieService
             {
                 if (!genreById.TryGetValue(genreDto.Id.Value, out var existsingGenre))
                 {
+                    _logger.LogError("There are not existsing genre {GenreId} in new genres for movie {MovieId}", 
+                        genreDto.Id.Value, 
+                        movie.Id);
                     throw new GenreNotFoundException(genreDto.Id.Value);
                 }
                 movie.GenresForMovie.Add(new GenreInMovie
@@ -180,6 +210,7 @@ public class MovieService : IMovieService
 
     private Dictionary<GenreId, Genre> GetGenresDictionary(IReadOnlyCollection<GenreDto> genres)
     {
+        _logger.LogDebug("Obtaining genres from the database: {@Genres}", genres);
         var genreIds = genres.Where(g => g.Id.HasValue).Select(g => g.Id!.Value);
         var genreById = _applicationDbContext.Genres
           .Where(g => genreIds.Contains(g.Id))
