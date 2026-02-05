@@ -26,6 +26,8 @@ public class ReviewMappingProfile : Profile
                             .ToHashSet()));
 
         CreateMap<CreateReviewDto, Review>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore());
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Movie, opt => opt.Ignore())
+            .ForMember(dest => dest.User, opt => opt.Ignore());
     }
 }

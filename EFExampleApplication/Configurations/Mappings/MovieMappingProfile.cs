@@ -22,8 +22,12 @@ public class MovieMappingProfile : Profile
             .ForCtorParam(nameof(ListOfMovies.Movies), source => source.MapFrom(movieList => movieList));
 
         CreateMap<CreateMovieDto, Movie>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore());
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Reviews, opt => opt.Ignore())
+            .ForMember(dest => dest.GenresForMovie, opt => opt.Ignore());
         CreateMap<CreateMovieV2Dto, Movie>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore());
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Reviews, opt => opt.Ignore())
+            .ForMember(dest => dest.GenresForMovie, opt => opt.Ignore());
     }
 }
